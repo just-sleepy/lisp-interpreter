@@ -1,7 +1,7 @@
 module Lib
     ( someFunc
     ) where
-import Control.Monad.State (StateT, put)
+import Control.Monad.State (StateT, put, runStateT)
 
 data Term
   = Nil
@@ -19,6 +19,9 @@ data Environment -- TODO
 type Program = [Term]
 
 type Eval a = StateT Environment (Either String) a
+
+defaultEnvironment :: Environment
+defaultEnvironment = error "Implement a default environment"
 
 lookupInEnvironment :: String -> Environment -> Maybe Value
 lookupInEnvironment = error "Implement a lookup function based on a HashMap"
@@ -38,6 +41,17 @@ eval (Keyword "define" ::: Keyword name ::: expr ::: Nil) environment = do
   return $ VList []
 eval (Keyword "lambda" ::: Keyword name ::: expr ::: Nil) environment = do
   return $ VLam $ \value -> eval expr (insertInEnvironment name value environment)
+
+repl :: Program -> Environment -> Either String Value
+repl program environment = foldr evalAndPrint (Right ([], environment)) program
+  where
+    evalAndPrint :: Term -> Either String ([Value], Environment) -> Either String ([Value], Environment)
+    evalAndPrint term (Left left) = Left left
+    evalAndPrint term (Right (values, environment')) =
+      let value = runStateT (eval term environment') environment'
+      in case value of
+        Left err -> Left err
+        Right (value', environment'') -> Right (value' : values, environment'')
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
