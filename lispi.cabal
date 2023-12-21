@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -35,6 +35,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , mtl >=2.2.2
   default-language: Haskell2010
 
 executable lispi-exe
@@ -49,6 +50,7 @@ executable lispi-exe
   build-depends:
       base >=4.7 && <5
     , lispi
+    , mtl >=2.2.2
   default-language: Haskell2010
 
 test-suite lispi-test
@@ -64,4 +66,5 @@ test-suite lispi-test
   build-depends:
       base >=4.7 && <5
     , lispi
+    , mtl >=2.2.2
   default-language: Haskell2010
