@@ -5,7 +5,16 @@ data LispVal = Atom String
              | Number Integer
              | String String
              | Bool Bool
-             deriving Show
+             | Function ([LispVal] -> LispVal)
+
+instance Show LispVal where
+    show (Atom name) = "Atom \"" ++ name ++ "\""
+    show (List contents) = "List " ++ show contents
+    show (Number contents) = "Number " ++ show contents
+    show (String contents) = "String \"" ++ contents ++ "\""
+    show (Bool True) = "Bool True"
+    show (Bool False) = "Bool False"
+    show (Function _) = "<Function>"
 
 eval :: LispVal -> LispVal
 eval val@(String _) = val
@@ -26,6 +35,11 @@ primitives = [("+", numericBinop (+)),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
               ("remainder", numericBinop rem),
+              ("filter", lispFilter),
+              ("map", lispMap),
+              ("cons", lispCons),
+              ("head", lispHead),
+              ("tail", lispTail),
               ("=", numBoolBinop (==)),
               ("<", numBoolBinop (<)),
               (">", numBoolBinop (>)),
@@ -51,6 +65,26 @@ boolBoolBinop :: (Bool -> Bool -> Bool) -> [LispVal] -> LispVal
 boolBoolBinop op params = case map unpackBool params of
                             [x, y] -> Bool $ op x y
                             _      -> Bool False
+
+lispFilter :: [LispVal] -> LispVal
+lispFilter ((Function pred):List xs:[]) = List $ filter (unpackBool . pred . (:[])) xs
+lispFilter _ = Atom "filter usage: (filter predicate list)"
+
+lispMap :: [LispVal] -> LispVal
+lispMap ((Function f):List xs:[]) = List $ map (f . (:[])) xs
+lispMap _ = Atom "map usage: (map function list)"
+
+lispCons :: [LispVal] -> LispVal
+lispCons (x:List xs:[]) = List (x:xs)
+lispCons _ = Atom "cons usage: (cons elem list)"
+
+lispHead :: [LispVal] -> LispVal
+lispHead (List (x:_):[]) = x
+lispHead _ = Atom "head usage: (head list)"
+
+lispTail :: [LispVal] -> LispVal
+lispTail (List (_:xs):[]) = List xs
+lispTail _ = Atom "tail usage: (tail list)"
 
 unpackBool :: LispVal -> Bool
 unpackBool (Bool b) = b
