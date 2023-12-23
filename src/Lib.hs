@@ -17,6 +17,8 @@ instance Show SExp where
 
 data Value
   = Num Integer
+  | True'
+  | False'
   | List [SExp]
   | Lam (Value -> Value)
 
@@ -27,37 +29,61 @@ instance Show Value where
 
 type SymbolTable = [(String, Value)]
 
+unwrapInt :: Value -> Integer
+unwrapInt (Num i) = i
+unwrapInt _ = error "Expected integer"
+
+unwrapBool :: Value -> Bool
+unwrapBool True' = True
+unwrapBool False' = False
+unwrapBool _ = error "Expected bool"
+
+unwrapList :: Value -> [SExp]
+unwrapList (List list) = list
+unwrapList _ = error "Expected list"
+
+unwrapLam :: Value -> (Value -> Value)
+unwrapLam (Lam lam) = lam
+unwrapLam _ = error "Expected lam"
+
 -- Yes, a State monad is applicable here, but it's not really necessary
 -- for this exposition.
 eval :: SExp -> SymbolTable -> (Value, SymbolTable)
 -- If the expression is just an integer, it has no effect on the symbol table
 -- but we should print out that integer.
 eval (Literal n) table = (Num n, table)
+eval (Symbol "true") table = (True', table)
+eval (Symbol "false") table = (False', table)
 eval (Symbol s) table =
   case lookup s table of
     Just value -> (value, table)
     Nothing -> error ("The value " ++ s ++ " is not defined! Aborting.")
 eval (SExp [Symbol "define", Symbol s, expr]) table =
   let value = fst $ eval expr table
-   in -- Return the new value and update the symbol table, overwriting the old
-      -- definition in the stupidest way possible.
-      (value, (s, value) : table)
+  in -- Return the new value and update the symbol table, overwriting the old
+     -- definition in the stupidest way possible.
+     (value, (s, value) : table)
 -- Note that in real Lisps, the expression '(1 2 3) is a *reader shorthand*
 -- that expands to (quote 1 2 3).
 eval (SExp (Symbol "quote" : exprs)) table = (List exprs, table)
+eval (SExp [Symbol "filter", f, SExp list]) table =
+  let args             = map (fst . (`eval` table)) list
+      (Lam f', table') = eval f table
+      list'            = filter (unwrapBool . f') args
+  in (List list', table')
 eval (SExp [Symbol "lambda", Symbol s, expr]) table =
   let fn value = fst $ eval expr ((s, value) : table)
-   in (Lam fn, table)
+  in (Lam fn, table)
 -- This is the general case,
 eval (SExp (car : cdr)) table =
   let (fn, _) = eval car table
       args = map (fst . (`eval` table)) cdr
-   in (applyRecursive fn args, table)
-   where -- This will get us Curried function application.
-         applyRecursive :: Value -> [Value] -> Value
-         applyRecursive = foldr next where
-           next (Lam fn) value = fn value
-           next not_a_function _  = error ("Cannot apply non-function " ++ show not_a_function)
+  in (applyRecursive fn args, table)
+  where -- This will get us Curried function application.
+        applyRecursive :: Value -> [Value] -> Value
+        applyRecursive = foldr next where
+          next (Lam fn) value = fn value
+          next not_a_function _  = error ("Cannot apply non-function " ++ show not_a_function)
 eval _ _ = error "Fodeu"
 
 binop :: (Integer -> Integer -> Integer) -> Value
@@ -66,10 +92,6 @@ binop f = Lam $ \lhs -> Lam $ \rhs -> Num $ f (unwrapInt lhs) (unwrapInt rhs)
 standardLibrary :: SymbolTable
 standardLibrary = [("+", binop (+)),
                    ("-", binop (-))]
-
-unwrapInt :: Value -> Integer
-unwrapInt (Num i) = i
-unwrapInt _ = error "Expected integer"
 
 repl :: Program -> [Value]
 repl prog = fst $ foldr evalAndPrint ([], standardLibrary) prog
