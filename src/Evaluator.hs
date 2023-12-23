@@ -1,5 +1,8 @@
 module Evaluator where
 
+import Debug.Trace
+
+
 data LispVal = Atom String
              | List [LispVal]
              | Number Integer
@@ -21,11 +24,13 @@ eval val@(String _) = val
 eval val@(Number _) = val
 eval val@(Bool _) = val
 eval (List [Atom "quote", val]) = val
+eval (List (Atom "filter" : Atom funcName : rest)) = lispFilter (Atom funcName : map eval rest)
+eval (List (Atom "map" : Atom funcName : rest)) = lispMap (Atom funcName : map eval rest)
 eval (List (Atom func : args)) = apply func $ map eval args
 eval _ = Atom "Unknown expression"
 
 apply :: String -> [LispVal] -> LispVal
-apply func args = maybe (Bool False) ($ args) $ lookup func primitives
+apply func args = maybe (Atom $ "Unknown function: " ++ func) ($ args) $ lookup func primitives
 
 primitives :: [(String, [LispVal] -> LispVal)]
 primitives = [("+", numericBinop (+)),
@@ -35,11 +40,13 @@ primitives = [("+", numericBinop (+)),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
               ("remainder", numericBinop rem),
-              ("filter", lispFilter),
-              ("map", lispMap),
               ("cons", lispCons),
               ("head", lispHead),
               ("tail", lispTail),
+              ("double", double),
+              ("isEven", isEven),
+              ("map", lispMap),
+              ("filter", lispFilter),
               ("=", numBoolBinop (==)),
               ("<", numBoolBinop (<)),
               (">", numBoolBinop (>)),
@@ -66,14 +73,6 @@ boolBoolBinop op params = case map unpackBool params of
                             [x, y] -> Bool $ op x y
                             _      -> Bool False
 
-lispFilter :: [LispVal] -> LispVal
-lispFilter ((Function pred):List xs:[]) = List $ filter (unpackBool . pred . (:[])) xs
-lispFilter _ = Atom "filter usage: (filter predicate list)"
-
-lispMap :: [LispVal] -> LispVal
-lispMap ((Function f):List xs:[]) = List $ map (f . (:[])) xs
-lispMap _ = Atom "map usage: (map function list)"
-
 lispCons :: [LispVal] -> LispVal
 lispCons (x:List xs:[]) = List (x:xs)
 lispCons _ = Atom "cons usage: (cons elem list)"
@@ -85,6 +84,28 @@ lispHead _ = Atom "head usage: (head list)"
 lispTail :: [LispVal] -> LispVal
 lispTail (List (_:xs):[]) = List xs
 lispTail _ = Atom "tail usage: (tail list)"
+
+lispMap :: [LispVal] -> LispVal
+lispMap (Atom funcName:List xs:[]) =
+    case lookup funcName primitives of
+        Just func -> List $ map (\x -> func [x]) xs
+        Nothing -> Atom $ "Unknown function: " ++ funcName
+lispMap _ = Atom "map usage: (map function list)"
+
+lispFilter :: [LispVal] -> LispVal
+lispFilter (Atom funcName:List xs:[]) =
+    case lookup funcName primitives of
+        Just func -> List $ filter (unpackBool . func . return) xs
+        Nothing -> Atom $ "Unknown function: " ++ funcName
+lispFilter _ = Atom "filter usage: (filter function list)"
+
+double :: [LispVal] -> LispVal
+double [Number n] = Number (n * 2)
+double _ = Atom "double usage: (double number)"
+
+isEven :: [LispVal] -> LispVal
+isEven [Number n] = Bool (n `mod` 2 == 0)
+isEven _ = Atom "isEven usage: (isEven number)"
 
 unpackBool :: LispVal -> Bool
 unpackBool (Bool b) = b
