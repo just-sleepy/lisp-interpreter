@@ -18,7 +18,7 @@ parseString = do
 
 parseAtom :: Parser LispVal
 parseAtom = do
-    first <- letter <|> symbol <|> char '#'  -- Include '#' for boolean literals
+    first <- letter <|> symbol <|> char '#' 
     rest <- many (letter <|> digit <|> symbol)
     let atom = first:rest
     return $ case atom of 
