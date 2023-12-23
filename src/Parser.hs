@@ -4,7 +4,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import Evaluator (LispVal(..))
 
 symbol :: Parser Char
-symbol = oneOf "!$%&|*+-/:<=>?@^_~"
+symbol = oneOf "!$%&|*+-/:<=>?@^~"
 
 spaces :: Parser ()
 spaces = skipMany1 space
@@ -12,7 +12,7 @@ spaces = skipMany1 space
 parseString :: Parser LispVal
 parseString = do
     char '"'
-    x <- many (noneOf "\"")
+    x <- many (noneOf """)
     char '"'
     return $ String x
 
@@ -24,7 +24,7 @@ parseAtom = do
     return $ case atom of 
                  "#t" -> Bool True
                  "#f" -> Bool False
-                 _    -> Atom atom
+                     -> Atom atom
 
 
 parseNumber :: Parser LispVal
@@ -41,4 +41,3 @@ parseExpr = parseAtom
                 x <- try parseList
                 char ')'
                 return x
-
