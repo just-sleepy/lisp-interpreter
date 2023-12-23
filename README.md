@@ -1,5 +1,9 @@
 # README - Interpretador LISP em Haskell
 
+## Contribuidores:
+- Gustavo Pierre Starling 202006420
+- Elaina Lynn de Moura Amaral 200016750
+
 ## Visão Geral
 
 Este projeto é um interpretador LISP escrito em Haskell. Ele é projetado para interpretar e executar um subconjunto da linguagem de programação LISP, permitindo que os usuários trabalhem com expressões simbólicas e o estilo de programação funcional do LISP. O interpretador é capaz de manipular vários tipos de dados, incluindo átomos, listas, números, strings e valores booleanos, e oferece uma gama de funções integradas para operações matemáticas e lógicas, além de manipulação de listas.
